@@ -33,4 +33,10 @@ next-env.d.ts
 .claude/
 .supabase-db-password.txt
 
+# Supabase CLI state
+supabase/.temp/
+
+# Unrelated local tooling
+plugins-for-claude-natives/
+
 .vercel
