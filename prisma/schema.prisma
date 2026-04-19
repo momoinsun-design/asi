@@ -59,12 +59,13 @@ enum Role {
 // ─── Core models ──────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String      @id @default(cuid())
+  email        String      @unique
   passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
+  role         Role        @default(USER)
+  createdAt    DateTime    @default(now())
   brand        Brand?
+  influencer   Influencer?
 }
 
 model Brand {
@@ -83,12 +84,14 @@ model Brand {
 
 model Influencer {
   id          String     @id @default(cuid())
+  user        User?      @relation(fields: [userId], references: [id])
+  userId      String?    @unique
   handle      String
   platform    Platform
   displayName String
   followers   Int
   engagement  Float      // 0.0 – 1.0
-  verticals   String     // comma-separated tags (SQLite-friendly)
+  verticals   String     // comma-separated tags
   country     String     @default("GLOBAL")
   source      DataSource @default(MOCK)
   createdAt   DateTime   @default(now())

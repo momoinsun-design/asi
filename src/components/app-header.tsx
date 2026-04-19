@@ -8,6 +8,8 @@ export async function AppHeader() {
   const t = await getT();
   const isAuthed = !!session?.user?.id;
   const isAdmin = session?.user?.role === "ADMIN";
+  const isBrand = !!session?.user?.brandId;
+  const isCreator = !!session?.user?.influencerId;
 
   return (
     <header className="border-b border-slate-200 bg-white">
@@ -18,15 +20,24 @@ export async function AppHeader() {
           </Link>
           {isAuthed && (
             <nav className="flex items-center gap-4 text-sm text-slate-600">
-              <Link href="/dashboard" className="hover:text-brand-700">
-                {t.nav.dashboard}
-              </Link>
-              <Link href="/discover" className="hover:text-brand-700">
-                {t.nav.discover}
-              </Link>
-              <Link href="/campaigns" className="hover:text-brand-700">
-                {t.nav.campaigns}
-              </Link>
+              {isBrand && (
+                <>
+                  <Link href="/dashboard" className="hover:text-brand-700">
+                    {t.nav.dashboard}
+                  </Link>
+                  <Link href="/discover" className="hover:text-brand-700">
+                    {t.nav.discover}
+                  </Link>
+                  <Link href="/campaigns" className="hover:text-brand-700">
+                    {t.nav.campaigns}
+                  </Link>
+                </>
+              )}
+              {isCreator && (
+                <Link href="/creator" className="hover:text-brand-700">
+                  {t.nav.creator}
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   href="/admin"

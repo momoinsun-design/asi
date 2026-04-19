@@ -5,7 +5,7 @@ import { OutreachSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (!session?.user?.brandId) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -20,27 +20,39 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const campaign = await prisma.campaign.findFirst({
-    where: { id: parsed.data.campaignId, brandId: session.user.brandId },
+  const campaign = await prisma.campaign.findUnique({
+    where: { id: parsed.data.campaignId },
   });
   if (!campaign) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Any state change here must travel through the FSM. A brand message from
+  const isBrand = !!session.user.brandId && session.user.brandId === campaign.brandId;
+  const isInfluencer =
+    !!session.user.influencerId && session.user.influencerId === campaign.influencerId;
+  if (!isBrand && !isInfluencer && session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const sender = isBrand ? "BRAND" : isInfluencer ? "INFLUENCER" : "SYSTEM";
+
+  // FSM auto-transitions only apply when the brand sends. A brand message from
   // DRAFT implicitly sends the brief first; a second message from SENT moves
-  // to NEGOTIATING. No other auto-transitions.
-  const simulate = process.env.SIMULATE_INFLUENCER_REPLY === "1";
+  // to NEGOTIATING. Influencer replies never mutate state on their own — the
+  // brand still owns ACCEPT/FUND/etc. through the campaign action API.
+  const simulate = process.env.SIMULATE_INFLUENCER_REPLY === "1" && isBrand;
   const nextState =
-    campaign.state === "DRAFT" ? ("SENT" as const)
-    : campaign.state === "SENT" ? ("NEGOTIATING" as const)
-    : null;
+    isBrand && campaign.state === "DRAFT"
+      ? ("SENT" as const)
+      : isBrand && campaign.state === "SENT"
+        ? ("NEGOTIATING" as const)
+        : null;
 
   const result = await prisma.$transaction(async (tx) => {
     const message = await tx.outreachMessage.create({
       data: {
         campaignId: campaign.id,
-        sender: "BRAND",
+        sender,
         body: parsed.data.body,
         counterUsd: parsed.data.counterUsd ?? null,
       },

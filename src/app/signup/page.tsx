@@ -1,105 +1,59 @@
-"use client";
-
-import { useState, type FormEvent } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Input, Textarea, Label } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useLocale } from "@/lib/i18n/provider";
+import { getT } from "@/lib/i18n/server";
 
-export default function SignupPage() {
-  const { t } = useLocale();
-  const router = useRouter();
-  const [form, setForm] = useState({
-    email: "",
-    password: "",
-    company: "",
-    vertical: "",
-    budgetUsd: "5000",
-    goals: "",
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    const res = await fetch("/api/signup", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...form, budgetUsd: Number(form.budgetUsd) }),
-    });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({}));
-      setError(typeof j.error === "string" ? j.error : t.signup.errorDefault);
-      setLoading(false);
-      return;
-    }
-    const login = await signIn("credentials", {
-      email: form.email,
-      password: form.password,
-      redirect: false,
-    });
-    setLoading(false);
-    if (login?.error) {
-      setError(t.signup.errorAutoLogin);
-      return;
-    }
-    router.push("/dashboard");
-    router.refresh();
-  }
-
-  function bind(field: keyof typeof form) {
-    return {
-      value: form[field],
-      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-        setForm((f) => ({ ...f, [field]: e.target.value })),
-    };
-  }
-
+export default async function SignupChooserPage() {
+  const t = await getT();
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="text-3xl font-bold text-slate-900">{t.signup.title}</h1>
+    <main className="mx-auto max-w-3xl px-6 py-16">
+      <h1 className="text-3xl font-bold text-slate-900">{t.signupChoose.title}</h1>
+      <p className="mt-2 text-sm text-slate-500">{t.signupChoose.subtitle}</p>
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <div>
-          <Label htmlFor="email">{t.signup.email}</Label>
-          <Input id="email" type="email" required {...bind("email")} />
-        </div>
-        <div>
-          <Label htmlFor="password">{t.signup.password}</Label>
-          <Input id="password" type="password" minLength={8} required {...bind("password")} />
-        </div>
-        <div>
-          <Label htmlFor="company">{t.signup.company}</Label>
-          <Input id="company" required {...bind("company")} />
-        </div>
-        <div>
-          <Label htmlFor="vertical">{t.signup.vertical}</Label>
-          <Input id="vertical" required {...bind("vertical")} />
-        </div>
-        <div>
-          <Label htmlFor="budgetUsd">{t.signup.budget}</Label>
-          <Input id="budgetUsd" type="number" min={100} required {...bind("budgetUsd")} />
-        </div>
-        <div>
-          <Label htmlFor="goals">{t.signup.goals}</Label>
-          <Textarea id="goals" rows={3} required {...bind("goals")} />
-        </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? t.signup.submitting : t.signup.submit}
-        </Button>
-      </form>
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <RoleCard
+          href="/signup/brand"
+          title={t.signupChoose.brandTitle}
+          body={t.signupChoose.brandBody}
+          cta={t.signupChoose.brandCta}
+        />
+        <RoleCard
+          href="/signup/creator"
+          title={t.signupChoose.creatorTitle}
+          body={t.signupChoose.creatorBody}
+          cta={t.signupChoose.creatorCta}
+        />
+      </div>
 
-      <p className="mt-6 text-sm text-slate-600">
+      <p className="mt-8 text-sm text-slate-600">
         {t.signup.haveAccount}{" "}
         <Link href="/login" className="text-brand-600 hover:underline">
           {t.signup.logIn}
         </Link>
       </p>
     </main>
+  );
+}
+
+function RoleCard({
+  href,
+  title,
+  body,
+  cta,
+}: {
+  href: string;
+  title: string;
+  body: string;
+  cta: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-colors hover:border-brand-400 hover:shadow-md"
+    >
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <p className="mt-2 text-sm text-slate-600">{body}</p>
+      </div>
+      <span className="mt-6 inline-block text-sm font-medium text-brand-600">{cta} →</span>
+    </Link>
   );
 }

@@ -26,7 +26,7 @@ export default function LoginPage() {
       setError(t.login.errorInvalid);
       return;
     }
-    router.push("/dashboard");
+    router.push("/post-login");
     router.refresh();
   }
 

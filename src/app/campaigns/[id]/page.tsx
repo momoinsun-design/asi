@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,26 +15,38 @@ export default async function CampaignDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  if (!session?.user?.brandId) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
 
   const t = await getT();
   const { id } = await params;
+
+  const isAdmin = session.user.role === "ADMIN";
+  const ownerFilters: Prisma.CampaignWhereInput[] = [];
+  if (session.user.brandId) ownerFilters.push({ brandId: session.user.brandId });
+  if (session.user.influencerId) ownerFilters.push({ influencerId: session.user.influencerId });
+
   const campaign = await prisma.campaign.findFirst({
-    where: { id, brandId: session.user.brandId },
+    where: isAdmin
+      ? { id }
+      : { id, OR: ownerFilters.length > 0 ? ownerFilters : [{ id: "__none__" }] },
     include: {
       influencer: true,
+      brand: true,
       outreach: { orderBy: { createdAt: "asc" } },
       escrow: true,
       report: true,
     },
   });
-  if (!campaign) redirect("/campaigns");
+  if (!campaign) redirect(session.user.brandId ? "/campaigns" : "/creator");
+
+  const viewerIsBrand = session.user.brandId === campaign.brandId;
+  const backHref = viewerIsBrand ? "/campaigns" : "/creator";
 
   const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <Link href="/campaigns" className="text-sm text-brand-600 hover:underline">
+      <Link href={backHref} className="text-sm text-brand-600 hover:underline">
         {t.campaignDetail.allCampaigns}
       </Link>
 
@@ -81,14 +94,16 @@ export default async function CampaignDetailPage({
         </Card>
       </div>
 
-      <section className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">{t.campaignDetail.actions}</h2>
-        <CampaignActions
-          campaignId={campaign.id}
-          state={campaign.state}
-          hasEscrow={!!campaign.escrow}
-        />
-      </section>
+      {viewerIsBrand && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">{t.campaignDetail.actions}</h2>
+          <CampaignActions
+            campaignId={campaign.id}
+            state={campaign.state}
+            hasEscrow={!!campaign.escrow}
+          />
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">{t.campaignDetail.negotiation}</h2>

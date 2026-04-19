@@ -5,6 +5,7 @@ import type { Influencer } from "@prisma/client";
 function mk(overrides: Partial<Influencer> = {}): Influencer {
   const base: Influencer = {
     id: overrides.id ?? "i1",
+    userId: overrides.userId ?? null,
     handle: overrides.handle ?? "h",
     platform: overrides.platform ?? "INSTAGRAM",
     displayName: overrides.displayName ?? "name",

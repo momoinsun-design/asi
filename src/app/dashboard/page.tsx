@@ -9,7 +9,11 @@ import { getT } from "@/lib/i18n/server";
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user?.brandId) redirect("/login");
+  if (!session?.user?.id) redirect("/login");
+  if (!session.user.brandId) {
+    if (session.user.influencerId) redirect("/creator");
+    redirect("/signup");
+  }
 
   const t = await getT();
   const brandId = session.user.brandId;

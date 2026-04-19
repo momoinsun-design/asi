@@ -10,6 +10,7 @@ declare module "next-auth" {
     user: {
       id: string;
       brandId: string | null;
+      influencerId: string | null;
       role: Role;
     } & DefaultSession["user"];
   }
@@ -19,6 +20,7 @@ declare module "@auth/core/jwt" {
   interface JWT {
     userId?: string;
     brandId?: string | null;
+    influencerId?: string | null;
     role?: Role;
   }
 }
@@ -37,7 +39,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const { email, password } = parsed.data;
         const user = await prisma.user.findUnique({
           where: { email },
-          include: { brand: true },
+          include: { brand: true, influencer: true },
         });
         // Constant-time-ish: still run bcrypt.compare even on miss so timing
         // does not leak whether the email exists.
@@ -49,6 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           id: user.id,
           email: user.email,
           brandId: user.brand?.id ?? null,
+          influencerId: user.influencer?.id ?? null,
           role: user.role,
         };
       },
@@ -61,6 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.userId = user.id as string;
         token.brandId = (user as { brandId?: string | null }).brandId ?? null;
+        token.influencerId = (user as { influencerId?: string | null }).influencerId ?? null;
         token.role = (user as { role?: Role }).role ?? "USER";
       }
       return token;
@@ -68,6 +72,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async session({ session, token }) {
       if (token.userId) session.user.id = token.userId;
       session.user.brandId = token.brandId ?? null;
+      session.user.influencerId = token.influencerId ?? null;
       session.user.role = token.role ?? "USER";
       return session;
     },
