@@ -32,6 +32,8 @@ next-env.d.ts
 .vercel/
 .claude/
 .supabase-db-password.txt
+.supabase-pat.txt
+DEPLOY.md
 
 # Supabase CLI state
 supabase/.temp/
