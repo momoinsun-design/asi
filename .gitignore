@@ -31,4 +31,6 @@ next-env.d.ts
 .omc/
 .vercel/
 .claude/
+.supabase-db-password.txt
 
+.vercel
