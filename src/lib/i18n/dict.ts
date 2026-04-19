@@ -87,6 +87,9 @@ const en = {
     followers: "Followers",
     engagement: "Engagement rate (0.0 – 1.0)",
     submit: "Create creator account",
+    linkTikTok: "Continue with TikTok",
+    linkInstagram: "Continue with Instagram",
+    or: "or sign up with email",
   },
   dashboard: {
     title: "Dashboard",
@@ -343,6 +346,9 @@ const ko: DictShape = {
     followers: "팔로워 수",
     engagement: "참여율 (0.0 ~ 1.0)",
     submit: "크리에이터 계정 만들기",
+    linkTikTok: "TikTok 계정으로 계속",
+    linkInstagram: "Instagram 계정으로 계속",
+    or: "또는 이메일로 가입",
   },
   dashboard: {
     title: "대시보드",
