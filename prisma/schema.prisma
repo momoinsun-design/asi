@@ -1,0 +1,171 @@
+// Global Influencer Marketplace — schema derived from deep-interview 9-entity ontology.
+// Entities: Brand, Influencer, Campaign, Platform (enum), Recommendation, Outreach, Escrow, Report, DataSource (enum).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────
+
+enum Platform {
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE_SHORTS
+}
+
+enum DataSource {
+  MOCK
+  IG_CREATOR_MARKETPLACE
+  TIKTOK_TCM
+  YOUTUBE_DATA_API
+  DIRECT_SIGNUP
+}
+
+enum CampaignState {
+  DRAFT
+  SENT
+  NEGOTIATING
+  ACCEPTED
+  FUNDED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum OutreachSender {
+  BRAND
+  INFLUENCER
+  SYSTEM
+}
+
+enum EscrowState {
+  PENDING
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+// ─── Core models ──────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  brand        Brand?
+}
+
+model Brand {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   @unique
+  company    String
+  vertical   String
+  budgetUsd  Int      // monthly budget hint in USD cents * 100 omitted; plain USD integers
+  goals      String   // free-text
+  createdAt  DateTime @default(now())
+
+  campaigns       Campaign[]
+  recommendations Recommendation[]
+}
+
+model Influencer {
+  id          String     @id @default(cuid())
+  handle      String
+  platform    Platform
+  displayName String
+  followers   Int
+  engagement  Float      // 0.0 – 1.0
+  verticals   String     // comma-separated tags (SQLite-friendly)
+  country     String     @default("GLOBAL")
+  source      DataSource @default(MOCK)
+  createdAt   DateTime   @default(now())
+
+  recommendations Recommendation[]
+  campaigns       Campaign[]
+
+  @@unique([handle, platform])
+  @@index([platform])
+}
+
+model Recommendation {
+  id            String     @id @default(cuid())
+  brand         Brand      @relation(fields: [brandId], references: [id])
+  brandId       String
+  influencer    Influencer @relation(fields: [influencerId], references: [id])
+  influencerId  String
+  fitScore      Float      // 0.0 – 1.0
+  expectedReach Int
+  budgetMatch   Float      // 0.0 – 1.0
+  createdAt     DateTime   @default(now())
+
+  @@index([brandId, createdAt])
+}
+
+model Campaign {
+  id           String        @id @default(cuid())
+  brand        Brand         @relation(fields: [brandId], references: [id])
+  brandId      String
+  influencer   Influencer    @relation(fields: [influencerId], references: [id])
+  influencerId String
+  platform     Platform
+  brief        String
+  offerUsd     Int           // proposed price in USD
+  state        CampaignState @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  outreach OutreachMessage[]
+  escrow   Escrow?
+  report   Report?
+
+  @@index([brandId, state])
+}
+
+model OutreachMessage {
+  id         String         @id @default(cuid())
+  campaign   Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String
+  sender     OutreachSender
+  body       String
+  counterUsd Int?           // optional counter-offer
+  createdAt  DateTime       @default(now())
+
+  @@index([campaignId, createdAt])
+}
+
+model Escrow {
+  id         String      @id @default(cuid())
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId String      @unique
+  amountUsd  Int
+  currency   String      @default("USD")
+  state      EscrowState @default(PENDING)
+  stripeRef  String?     // set when real Stripe; null in mock mode
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Report {
+  id              String   @id @default(cuid())
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaignId      String   @unique
+  reach           Int
+  engagementCount Int
+  gmvUsd          Int      // emitted on COMPLETED transition
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+}

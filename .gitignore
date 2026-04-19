@@ -1,0 +1,34 @@
+node_modules/
+.next/
+out/
+dist/
+build/
+
+.env
+.env.local
+.env.*.local
+
+# Prisma local DB
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Test output
+coverage/
+.vitest-cache/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Local tooling state
+.omc/
+.vercel/
+.claude/
+
